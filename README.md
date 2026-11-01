@@ -184,6 +184,23 @@ modifying the photo; the trade was made deliberately.
 means "bookmark", but in File Explorer it deletes the selection. Settings refuses to
 bind it, along with the other Ctrl+letter combinations Explorer already claims.
 
+## Roadmap
+
+Planned:
+
+- [Signed releases through SignPath](https://github.com/tashreefshareef/fav-explorer/issues/1), so SmartScreen stops warning
+- [Install with winget and Scoop](https://github.com/tashreefshareef/fav-explorer/issues/2)
+- [Search and filter in the favourites list](https://github.com/tashreefshareef/fav-explorer/issues/3)
+- [Copy or export all favourites to a folder](https://github.com/tashreefshareef/fav-explorer/issues/4)
+- [Keep hearts when files are copied to drives that can't store them](https://github.com/tashreefshareef/fav-explorer/issues/5)
+
+Under consideration:
+
+- [Shortcut support in other photo viewers](https://github.com/tashreefshareef/fav-explorer/issues/6) such as IrfanView and ImageGlass
+
+Give an issue a 👍 to vote for it, or
+[open a new one](https://github.com/tashreefshareef/fav-explorer/issues/new) with an idea.
+
 ## Layout
 
 ```
