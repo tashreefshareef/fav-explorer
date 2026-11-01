@@ -76,6 +76,11 @@ internal static class Native
     [DllImport("user32.dll")]
     public static extern IntPtr GetShellWindow();
 
+    public const uint GW_HWNDNEXT = 2;
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern int GetClassNameW(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
 

@@ -8,6 +8,9 @@
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>FavExplorer</RootNamespace>
     <AssemblyName>SelfTest</AssemblyName>
+    <!-- Plain net10.0 so the output path CI and the README use stays put; it only
+         ever runs on Windows anyway. -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
 
   <!-- The same source files the tray app ships, not copies of them. -->
@@ -20,6 +23,7 @@
     <Compile Include="..\..\src\tray\FolderWatcher.cs" />
     <Compile Include="..\..\src\tray\FavoriteStore.cs" />
     <Compile Include="..\..\src\tray\PhotosViewer.cs" />
+    <Compile Include="..\..\src\tray\ExplorerSelection.cs" />
   </ItemGroup>
 
 </Project>

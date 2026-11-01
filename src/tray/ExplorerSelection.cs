@@ -121,6 +121,60 @@ internal static class ExplorerSelection
     }
 
     /// <summary>
+    /// The folder each open Explorer window is showing, keyed by window handle.
+    /// Windows on something with no path on disk (This PC, Home, a search) are left out.
+    /// </summary>
+    public static List<(IntPtr Hwnd, string Folder)> GetOpenFolders()
+    {
+        var result = new List<(IntPtr, string)>();
+        object? shellObj = null;
+        try
+        {
+            Type? shellType = Type.GetTypeFromProgID("Shell.Application");
+            if (shellType is null) return result;
+
+            shellObj = Activator.CreateInstance(shellType);
+            if (shellObj is null) return result;
+
+            dynamic shell = shellObj;
+            dynamic windows = shell.Windows();
+
+            int count = windows.Count;
+            for (int i = 0; i < count; i++)
+            {
+                dynamic? w = null;
+                try
+                {
+                    w = windows.Item(i);
+                    if (w is null) continue;
+
+                    string? folder = w.Document?.Folder?.Self?.Path as string;
+                    if (!string.IsNullOrEmpty(folder) && Path.IsPathRooted(folder))
+                        result.Add((new IntPtr((long)w.HWND), folder));
+                }
+                catch (COMException) { }
+                catch (Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
+                {
+                    // Internet Explorer-era shell windows have no Folder at all.
+                }
+                finally
+                {
+                    if (w is not null && Marshal.IsComObject(w)) Marshal.ReleaseComObject(w);
+                }
+            }
+        }
+        catch (COMException) { }
+        catch (InvalidCastException) { }
+        finally
+        {
+            if (shellObj is not null && Marshal.IsComObject(shellObj))
+                Marshal.ReleaseComObject(shellObj);
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Opens an Explorer window on the file's folder with the file itself selected.
     /// Used by the favourites list.
     /// </summary>

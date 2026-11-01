@@ -123,6 +123,9 @@ if (cmd == "photos")
     Console.WriteLine($"launch file    : {launched ?? "(not parsed)"}");
     Console.WriteLine($"title          : [{title}]");
     Console.WriteLine($"current path   : {candidate ?? "(n/a)"}  exists={candidate is not null && File.Exists(candidate)}");
+    foreach (var (h, folder) in ExplorerSelection.GetOpenFolders())
+        Console.WriteLine($"explorer open  : {folder}  has title={File.Exists(Path.Combine(folder, title))}  hwnd={h}");
+    Console.WriteLine($"from folders   : {PhotosViewer.FindInOpenFolders(hwnd, title) ?? "(not found)"}");
     return 0;
 }
 

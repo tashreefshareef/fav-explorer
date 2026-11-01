@@ -19,9 +19,11 @@ namespace FavExplorer;
 ///     and it does update as the user moves through the folder.
 ///
 /// Next/Previous never leave the folder the viewer was opened in, so the launch
-/// file's folder plus the current title is the current path. Both halves are
-/// checked against the disk before anything is tagged; if either fails the answer
-/// is "don't know", not a guess.
+/// file's folder plus the current title is the current path. Windows hosted in a
+/// spare process have no launch file; for those the folder comes from the open
+/// Explorer windows instead (see <see cref="FindInOpenFolders"/>). Either way the
+/// result is checked against the disk before anything is tagged; if nothing fits
+/// the answer is "don't know", not a guess.
 /// </summary>
 internal static class PhotosViewer
 {
@@ -44,18 +46,58 @@ internal static class PhotosViewer
         IntPtr fg = Native.GetForegroundWindow();
         if (fg == IntPtr.Zero || !IsViewerWindow(fg)) return null;
 
-        Native.GetWindowThreadProcessId(fg, out uint pid);
-        string? launched = LaunchFileOf(pid);
-        if (launched is null) return null;
-
-        string? folder = Path.GetDirectoryName(launched);
-        if (string.IsNullOrEmpty(folder)) return null;
-
         string title = TitleOf(fg);
         if (title.Length == 0 || title.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return null;
 
-        string candidate = Path.Combine(folder, title);
-        return File.Exists(candidate) ? candidate : null;
+        Native.GetWindowThreadProcessId(fg, out uint pid);
+        string? launched = LaunchFileOf(pid);
+        string? folder = launched is null ? null : Path.GetDirectoryName(launched);
+        if (!string.IsNullOrEmpty(folder))
+        {
+            string candidate = Path.Combine(folder, title);
+            if (File.Exists(candidate)) return candidate;
+        }
+
+        return FindInOpenFolders(fg, title);
+    }
+
+    /// <summary>
+    /// Newer Photos builds keep idle "spare" processes
+    /// (<c>Photos.exe ms-photos:spareprocess-viewer</c>) and hand the file to one after
+    /// it has started, so most viewer windows have no file on their command line.
+    ///
+    /// Opening a photo nearly always means double-clicking it in an Explorer window
+    /// that is still open behind the viewer, so look for the title in the folders
+    /// Explorer is showing, then on the desktop. When the same name exists in more
+    /// than one of those, the Explorer window closest under the viewer wins: that is
+    /// the one the photo was just opened from.
+    /// </summary>
+    internal static string? FindInOpenFolders(IntPtr viewer, string title)
+    {
+        var zOrder = new Dictionary<IntPtr, int>();
+        int rank = 0;
+        for (IntPtr h = Native.GetWindow(viewer, Native.GW_HWNDNEXT);
+             h != IntPtr.Zero && rank < 10_000;
+             h = Native.GetWindow(h, Native.GW_HWNDNEXT))
+            zOrder[h] = rank++;
+
+        string? best = null;
+        int bestRank = int.MaxValue;
+        foreach (var (hwnd, folder) in ExplorerSelection.GetOpenFolders())
+        {
+            string candidate = Path.Combine(folder, title);
+            int r = zOrder.TryGetValue(hwnd, out int z) ? z : int.MaxValue - 1;
+            if (r < bestRank && File.Exists(candidate)) { best = candidate; bestRank = r; }
+        }
+        if (best is not null) return best;
+
+        foreach (var special in new[] { Environment.SpecialFolder.DesktopDirectory,
+                                        Environment.SpecialFolder.CommonDesktopDirectory })
+        {
+            string candidate = Path.Combine(Environment.GetFolderPath(special), title);
+            if (File.Exists(candidate)) return candidate;
+        }
+        return null;
     }
 
     internal static bool IsViewerWindow(IntPtr hwnd)
