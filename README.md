@@ -17,12 +17,29 @@ Double-click the tray icon for every favourite in one list, wherever it lives:
 
 ![The Fav Explorer favourites window listing four hearted photos with their folder and the time each was favourited](docs/images/favourites-list.png)
 
+## Why I made this
+
+I work with images and screenshots every day, and I end up with folders full of shots
+that look almost the same. Before uploading anything I go through them and pick the
+ones I'll actually use. I used to Ctrl+click my picks, then click somewhere by accident
+and lose the whole selection. Back to opening every photo again, trying to remember
+which one I liked.
+
+Then I had to pick photos from my wedding for the album, hundreds of them, many shot
+seconds apart. Same problem, much worse. So I made this. Now I open a photo, heart it if
+I want it, skip it if I don't, and when I'm done the hearts are still there.
+
 ## Download
 
 Get `FavExplorerSetup-<version>.exe` from
 [Releases](https://github.com/tashreefshareef/fav-explorer/releases). Windows 10 1809
-or later, x64. See the [code signing policy](#code-signing-policy) for how release
-binaries are signed.
+or later, x64.
+
+Fav Explorer uses free code signing for open source projects provided by
+[SignPath.io](https://about.signpath.io), with a certificate by
+[SignPath Foundation](https://signpath.org). Releases up to and including 0.1.1 were
+published before signing was set up and are unsigned, so SmartScreen may warn about
+them. See the [code signing policy](#code-signing-policy).
 
 ## How it works
 
