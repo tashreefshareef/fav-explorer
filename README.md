@@ -11,6 +11,12 @@ It also works inside the Photos viewer: open a folder's photos, arrow through th
 and press the same shortcut on any that deserve it. The heart lands on that file and
 is waiting on its thumbnail when you go back to Explorer.
 
+![Explorer showing a folder of photos, four of them with a small red heart in the corner of the thumbnail](docs/images/explorer-hearts.png)
+
+Double-click the tray icon for every favourite in one list, wherever it lives:
+
+![The Fav Explorer favourites window listing four hearted photos with their folder and the time each was favourited](docs/images/favourites-list.png)
+
 ## Download
 
 Get `FavExplorerSetup-<version>.exe` from
@@ -38,7 +44,9 @@ things the OS exposes about any window: the viewer's command line names the file
 was opened on (each viewer window is its own process), and its title is the bare name
 of whatever it is showing now. Next/Previous never leave the opening folder, so the
 folder from one plus the name from the other is the path — checked against the disk
-before it is trusted. `SelfTest photos <hwnd>` reports each of those steps for a
+before it is trusted. Newer Photos builds often hand the file to an idle spare process
+whose command line names nothing; then the folder comes from the open Explorer windows
+instead, nearest the viewer first, and then the Desktop. `SelfTest photos <hwnd>` reports each of those steps for a
 window, for when that inference stops matching what Photos does.
 
 The tag itself is an **NTFS alternate data stream** named `favexplorer`, attached to the
