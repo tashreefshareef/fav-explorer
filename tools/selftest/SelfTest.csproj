@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>FavExplorer</RootNamespace>
+    <AssemblyName>SelfTest</AssemblyName>
+  </PropertyGroup>
+
+  <!-- The same source files the tray app ships, not copies of them. -->
+  <ItemGroup>
+    <Compile Include="..\..\src\tray\Native.cs" />
+    <Compile Include="..\..\src\tray\Paths.cs" />
+    <Compile Include="..\..\src\tray\Log.cs" />
+    <Compile Include="..\..\src\tray\AdsTag.cs" />
+    <Compile Include="..\..\src\tray\DirIndex.cs" />
+    <Compile Include="..\..\src\tray\FolderWatcher.cs" />
+    <Compile Include="..\..\src\tray\FavoriteStore.cs" />
+    <Compile Include="..\..\src\tray\PhotosViewer.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,160 @@
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+
+namespace FavExplorer;
+
+/// <summary>Win32 surface. Nothing here has any policy in it.</summary>
+internal static class Native
+{
+    // ---------------------------------------------------------------- files --
+
+    public const uint GENERIC_WRITE          = 0x40000000;
+    public const uint FILE_READ_ATTRIBUTES   = 0x0080;
+    public const uint FILE_SHARE_READ        = 0x1;
+    public const uint FILE_SHARE_WRITE       = 0x2;
+    public const uint FILE_SHARE_DELETE      = 0x4;
+    public const uint CREATE_ALWAYS          = 2;
+    public const uint OPEN_EXISTING          = 3;
+    public const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000;
+    // Timestamps live in the file's $STANDARD_INFORMATION record, which every stream
+    // on that file shares. Writing the favexplorer stream therefore restamps the whole
+    // file unless we put the old values back — see AdsTag.RestoreStamps.
+    public const uint FILE_WRITE_ATTRIBUTES = 0x0100;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetFileTime(SafeFileHandle hFile,
+        out long lpCreationTime, out long lpLastAccessTime, out long lpLastWriteTime);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetFileTime(SafeFileHandle hFile,
+        ref long lpCreationTime, ref long lpLastAccessTime, ref long lpLastWriteTime);
+
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern SafeFileHandle CreateFileW(
+        string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes,
+        uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DeleteFileW(string lpFileName);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetVolumeInformationW(
+        string? lpRootPathName,
+        IntPtr lpVolumeNameBuffer, int nVolumeNameSize,
+        out uint lpVolumeSerialNumber, out uint lpMaximumComponentLength,
+        out uint lpFileSystemFlags,
+        [MarshalAs(UnmanagedType.LPWStr)] System.Text.StringBuilder lpFileSystemNameBuffer,
+        int nFileSystemNameSize);
+
+    // ----------------------------------------------------------------- shell --
+
+    public const uint SHCNE_UPDATEITEM = 0x00002000;
+    public const uint SHCNE_UPDATEDIR  = 0x00001000;
+    public const uint SHCNF_PATHW      = 0x0005;
+    public const uint SHCNF_FLUSH      = 0x1000;
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    public static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    public static extern int SHParseDisplayName(
+        string pszName, IntPtr pbc, out IntPtr ppidl, uint sfgaoIn, out uint psfgaoOut);
+
+    [DllImport("shell32.dll")]
+    public static extern void ILFree(IntPtr pidl);
+
+    // ---------------------------------------------------------------- windows --
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetShellWindow();
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern int GetClassNameW(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern int GetWindowTextW(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    // ------------------------------------------------------------- processes --
+
+    public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+    public const int  ProcessCommandLineInformation      = 60;
+    public const int  STATUS_INFO_LENGTH_MISMATCH        = unchecked((int)0xC0000004);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr OpenProcess(uint dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool CloseHandle(IntPtr hObject);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool QueryFullProcessImageNameW(IntPtr hProcess, uint dwFlags, System.Text.StringBuilder lpExeName, ref int lpdwSize);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct UNICODE_STRING
+    {
+        public ushort Length;
+        public ushort MaximumLength;
+        public IntPtr Buffer;
+    }
+
+    [DllImport("ntdll.dll")]
+    public static extern int NtQueryInformationProcess(
+        IntPtr processHandle, int processInformationClass, IntPtr processInformation,
+        int processInformationLength, out int returnLength);
+
+    // ------------------------------------------------------------------ hook --
+
+    public const int WH_KEYBOARD_LL = 13;
+    public const int WM_KEYDOWN     = 0x0100;
+    public const int WM_SYSKEYDOWN  = 0x0104;
+
+    public const int VK_SHIFT   = 0x10;
+    public const int VK_CONTROL = 0x11;
+    public const int VK_MENU    = 0x12;   // Alt
+    public const int VK_LWIN    = 0x5B;
+    public const int VK_RWIN    = 0x5C;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KBDLLHOOKSTRUCT
+    {
+        public uint vkCode;
+        public uint scanCode;
+        public uint flags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern IntPtr SetWindowsHookExW(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
+
+    public static bool IsDown(int vKey) => (GetAsyncKeyState(vKey) & 0x8000) != 0;
+}
