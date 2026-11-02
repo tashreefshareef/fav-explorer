@@ -110,62 +110,6 @@ internal static class Native
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     public static extern int SHFileOperationW(ref SHFILEOPSTRUCT lpFileOp);
 
-    [DllImport("shell32.dll")]
-    public static extern int SHCreateShellItemArrayFromIDLists(
-        uint cidl, IntPtr[] rgpidl, [MarshalAs(UnmanagedType.Interface)] out IShellItemArray? ppsiItemArray);
-
-    public static readonly Guid BHID_SFUIObject = new("3981e225-f559-11d3-8e3a-00c04f6837d5");
-
-    [ComImport, Guid("b63ea76d-1f85-456f-a19c-48159efa858b"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IShellItemArray
-    {
-        [PreserveSig]
-        int BindToHandler(IntPtr pbc, ref Guid bhid, ref Guid riid,
-            [MarshalAs(UnmanagedType.Interface)] out object? ppvOut);
-        // The rest of the interface is never called, so it is not declared.
-    }
-
-    public const uint CMF_NORMAL = 0x0;
-    public const uint CMIC_MASK_UNICODE = 0x4000;
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    public struct CMINVOKECOMMANDINFOEX
-    {
-        public int cbSize;
-        public uint fMask;
-        public IntPtr hwnd;
-        [MarshalAs(UnmanagedType.LPStr)] public string? lpVerb;
-        [MarshalAs(UnmanagedType.LPStr)] public string? lpParameters;
-        [MarshalAs(UnmanagedType.LPStr)] public string? lpDirectory;
-        public int nShow;
-        public uint dwHotKey;
-        public IntPtr hIcon;
-        [MarshalAs(UnmanagedType.LPStr)] public string? lpTitle;
-        [MarshalAs(UnmanagedType.LPWStr)] public string? lpVerbW;
-        [MarshalAs(UnmanagedType.LPWStr)] public string? lpParametersW;
-        [MarshalAs(UnmanagedType.LPWStr)] public string? lpDirectoryW;
-        [MarshalAs(UnmanagedType.LPWStr)] public string? lpTitleW;
-        public int ptInvokeX;
-        public int ptInvokeY;
-    }
-
-    [ComImport, Guid("000214e4-0000-0000-c000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    public interface IContextMenu
-    {
-        [PreserveSig]
-        int QueryContextMenu(IntPtr hmenu, uint indexMenu, uint idCmdFirst, uint idCmdLast, uint uFlags);
-        [PreserveSig]
-        int InvokeCommand(ref CMINVOKECOMMANDINFOEX pici);
-        // GetCommandString is never called, so it is not declared.
-    }
-
-    [DllImport("user32.dll")]
-    public static extern IntPtr CreatePopupMenu();
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool DestroyMenu(IntPtr hMenu);
-
     // Explorer's own name ordering, where "photo 2" sorts before "photo 10".
     [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
     public static extern int StrCmpLogicalW(string psz1, string psz2);

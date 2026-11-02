@@ -1,10 +1,11 @@
-using System.Runtime.InteropServices;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 
 namespace FavExplorer;
 
 /// <summary>
-/// Moving, copying and sharing files the way Explorer does it, by asking the shell
-/// to do it, so the user gets the dialogs they already know: progress, "replace or
+/// Moving, copying and sharing files the way Explorer does it, by asking Windows to
+/// do it, so the user gets the dialogs they already know: progress, "replace or
 /// skip", Ctrl+Z to undo, and the Windows share panel.
 /// </summary>
 internal static class ShellActions
@@ -45,57 +46,64 @@ internal static class ShellActions
         return done.Task;
     }
 
-    /// <summary>
-    /// Opens the Windows share panel for these files, through the same Share verb
-    /// Explorer's own Share button invokes. They must all be in one folder, as they
-    /// must be in Explorer.
-    /// </summary>
+    // ---------------------------------------------------------------- share --
+
+    // One DataTransferManager per window, asked for its data each time the panel
+    // opens. Explorer's own Share verb looked like a shortcut to this, but it only
+    // works from inside Explorer: anywhere else it fails with "invalid window handle".
+    private static readonly Dictionary<IntPtr, DataTransferManager> Managers = new();
+    private static IReadOnlyList<string> _sharing = Array.Empty<string>();
+
+    /// <summary>Opens the Windows share panel for these files, anchored to <paramref name="owner"/>.</summary>
     public static bool Share(IntPtr owner, IReadOnlyList<string> files)
     {
-        var pidls = new List<IntPtr>(files.Count);
-        Native.IShellItemArray? items = null;
-        object? handler = null;
-        IntPtr menu = IntPtr.Zero;
         try
         {
+            if (!Managers.TryGetValue(owner, out DataTransferManager? manager))
+            {
+                manager = DataTransferManagerInterop.GetForWindow(owner);
+                manager.DataRequested += OnDataRequested;
+                Managers[owner] = manager;
+            }
+            _sharing = files.ToList();
+            DataTransferManagerInterop.ShowShareUIForWindow(owner);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"share panel failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static async void OnDataRequested(DataTransferManager sender, DataRequestedEventArgs args)
+    {
+        DataRequest request = args.Request;
+        DataRequestDeferral deferral = request.GetDeferral();
+        try
+        {
+            IReadOnlyList<string> files = _sharing;
+            var items = new List<IStorageItem>(files.Count);
             foreach (string f in files)
             {
-                if (Native.SHParseDisplayName(f, IntPtr.Zero, out IntPtr pidl, 0, out _) != 0) return false;
-                pidls.Add(pidl);
+                items.Add(Directory.Exists(f)
+                    ? await StorageFolder.GetFolderFromPathAsync(f)
+                    : await StorageFile.GetFileFromPathAsync(f));
             }
-            if (Native.SHCreateShellItemArrayFromIDLists((uint)pidls.Count, pidls.ToArray(), out items) != 0 || items is null)
-                return false;
 
-            Guid bhid = Native.BHID_SFUIObject;
-            Guid iid = typeof(Native.IContextMenu).GUID;
-            if (items.BindToHandler(IntPtr.Zero, ref bhid, ref iid, out handler) != 0 || handler is not Native.IContextMenu cm)
-                return false;
-
-            // Some handlers only answer to a verb once they have been asked to fill a menu.
-            menu = Native.CreatePopupMenu();
-            cm.QueryContextMenu(menu, 0, 1, 0x7FFF, Native.CMF_NORMAL);
-
-            var info = new Native.CMINVOKECOMMANDINFOEX
-            {
-                cbSize = Marshal.SizeOf<Native.CMINVOKECOMMANDINFOEX>(),
-                fMask = Native.CMIC_MASK_UNICODE,
-                hwnd = owner,
-                lpVerb = "Windows.ModernShare",
-                lpVerbW = "Windows.ModernShare",
-                nShow = 1,
-            };
-            return cm.InvokeCommand(ref info) == 0;
+            request.Data.Properties.Title = files.Count == 1
+                ? Path.GetFileName(files[0].TrimEnd('\\'))
+                : $"{files.Count} favourites";
+            request.Data.SetStorageItems(items);
         }
-        catch
+        catch (Exception ex)
         {
-            return false;
+            Log.Write($"share data failed: {ex.Message}");
+            request.FailWithDisplayText("Fav Explorer couldn't open those files to share them.");
         }
         finally
         {
-            if (menu != IntPtr.Zero) Native.DestroyMenu(menu);
-            if (handler is not null) Marshal.ReleaseComObject(handler);
-            if (items is not null) Marshal.ReleaseComObject(items);
-            foreach (IntPtr p in pidls) Native.ILFree(p);
+            deferral.Complete();
         }
     }
 }

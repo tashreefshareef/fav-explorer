@@ -2,7 +2,10 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- The Windows SDK projection is for the share panel, which a desktop app can
+         only open through DataTransferManager. Still runs on 1809, as before. -->
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <UseWindowsForms>true</UseWindowsForms>
     <!-- The favourites window is WPF for its Fluent theme; the tray and Settings
          stay WinForms. ThemeMode is still flagged experimental (WPF0001). -->
