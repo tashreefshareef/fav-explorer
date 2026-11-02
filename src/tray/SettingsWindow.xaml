@@ -103,8 +103,6 @@
                         <Button x:Name="CheckNowButton" Grid.Column="1" Content="Check now" Margin="12,0,0,0" Padding="16,6"
                                 VerticalAlignment="Center" Click="OnCheckNow" />
                     </Grid>
-                    <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,0"
-                               Text="Asks GitHub which version is the latest, and tells you in the notification area when there's a newer one. Nothing about you or your files is sent." />
                     <TextBlock x:Name="UpdateStatus" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
 
                     <TextBlock Style="{StaticResource Caption}" Margin="0,12,0,0"
