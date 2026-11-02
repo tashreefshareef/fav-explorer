@@ -63,6 +63,18 @@ internal sealed class Settings
     [JsonPropertyName("runAtStartup")]
     public bool RunAtStartup { get; set; }
 
+    // Off unless the user turns it on: it is the only thing that makes the app go
+    // online at all. See UpdateCheck.
+    [JsonPropertyName("checkForUpdates")]
+    public bool CheckForUpdates { get; set; }
+
+    [JsonPropertyName("lastUpdateCheck")]
+    public long LastUpdateCheck { get; set; }
+
+    // The newest version the tray has already announced, so it says so once.
+    [JsonPropertyName("announcedVersion")]
+    public string? AnnouncedVersion { get; set; }
+
     // How the favourites window was last left. Strings rather than the enums so an
     // older or newer build reading this file falls back instead of failing.
     [JsonPropertyName("favouritesView")]

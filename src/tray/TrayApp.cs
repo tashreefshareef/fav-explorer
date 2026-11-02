@@ -13,6 +13,13 @@ internal sealed class TrayApp : ApplicationContext
     // The index has gone stale in the field once already, silently. A periodic check
     // costs one header read and bounds how long that can go unnoticed.
     private readonly System.Windows.Forms.Timer _indexWatchdog = new();
+
+    // Wakes a few times a day to see whether the weekly update check is due; it
+    // does nothing at all unless the user turned update checks on.
+    private readonly System.Windows.Forms.Timer _updateTimer = new() { Interval = 6 * 60 * 60 * 1000 };
+
+    // Where a click on the current balloon should go, if anywhere.
+    private string? _balloonUrl;
     private FavoritesWindow? _favorites;
     private SettingsWindow? _settingsWindow;
 
@@ -52,6 +59,7 @@ internal sealed class TrayApp : ApplicationContext
         };
         _tray.DoubleClick += (_, _) => ShowFavorites();
         _tray.MouseUp += (_, e) => { if (e.Button == MouseButtons.Right) _menu.Show(); };
+        _tray.BalloonTipClicked += (_, _) => { if (_balloonUrl is string url) OpenUrl(url); };
 
         _store.Changed += () => _marshal.BeginInvoke(UpdateMenuText);
         _showWait = ThreadPool.RegisterWaitForSingleObject(_showRequest,
@@ -85,6 +93,11 @@ internal sealed class TrayApp : ApplicationContext
 
         // And once at startup, after the reconcile has had a chance to settle.
         Task.Run(async () => { await Task.Delay(4000); _store.CheckIndex(repair: true); });
+
+        _updateTimer.Tick += (_, _) => CheckForUpdates();
+        _updateTimer.Start();
+        // Not at the moment of sign-in, when everything else is starting too.
+        Task.Delay(TimeSpan.FromMinutes(1)).ContinueWith(_ => _marshal.BeginInvoke(CheckForUpdates));
     }
 
     // ------------------------------------------------------------------- menu --
@@ -178,6 +191,8 @@ internal sealed class TrayApp : ApplicationContext
         {
             _hook.Rebind(applied.Shortcut);
             UpdateMenuText();
+            // Turning update checks on should check now, not up to six hours from now.
+            CheckForUpdates();
         });
         _settingsWindow.Present();
     }
@@ -217,10 +232,45 @@ internal sealed class TrayApp : ApplicationContext
               $"{s.Position} of {s.Total}. Tagging still works, but the heart won't be drawn until " +
               "another handler is removed. Settings shows the full list.";
 
+        _balloonUrl = null;
         _tray.BalloonTipTitle = "The heart won't show yet";
         _tray.BalloonTipText = detail;
         _tray.BalloonTipIcon = ToolTipIcon.Warning;
         _tray.ShowBalloonTip(8000);
+    }
+
+    // --------------------------------------------------------------- updates --
+
+    /// <summary>
+    /// The weekly look at GitHub, if the user turned it on. A newer version is
+    /// announced once, in a balloon that opens its release page when clicked.
+    /// </summary>
+    private async void CheckForUpdates()
+    {
+        if (!UpdateCheck.IsDue(_settings)) return;
+
+        UpdateInfo? info = await UpdateCheck.FetchAsync();
+        if (info is null) return; // offline or GitHub unreachable: try again next tick
+
+        _settings.LastUpdateCheck = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        string latest = info.Latest.ToString();
+        bool announce = info.IsNewer && _settings.AnnouncedVersion != latest;
+        if (announce) _settings.AnnouncedVersion = latest;
+        _settings.Save();
+        Log.Write($"update check: latest {latest}, running {UpdateCheck.Current}");
+        if (!announce) return;
+
+        _balloonUrl = info.Url;
+        _tray.BalloonTipTitle = $"Fav Explorer {latest} is available";
+        _tray.BalloonTipText = $"You have {UpdateCheck.Current}. Click to see what's new and download it.";
+        _tray.BalloonTipIcon = ToolTipIcon.Info;
+        _tray.ShowBalloonTip(10000);
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch { }
     }
 
     // ------------------------------------------------------------------- exit --
@@ -238,6 +288,7 @@ internal sealed class TrayApp : ApplicationContext
             _showWait.Unregister(null);
             _showRequest.Dispose();
             _indexWatchdog.Dispose();
+            _updateTimer.Dispose();
             _hook.Dispose();
             _tray.Dispose();
             _store.Dispose();

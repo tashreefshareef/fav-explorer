@@ -78,7 +78,48 @@
         </DataTemplate>
     </Window.Resources>
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="20,16,20,20">
+
+        <!-- About, and the opt-in update check -->
+        <Border Style="{StaticResource Card}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Image x:Name="AboutIcon" Width="40" Height="40" Margin="0,2,16,0" VerticalAlignment="Top"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="Fav Explorer" Style="{StaticResource CardTitle}" Margin="0" />
+                    <TextBlock x:Name="VersionText" Style="{StaticResource Caption}" Margin="0,2,0,0" />
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox x:Name="UpdatesBox" Content="Check for updates once a week" VerticalAlignment="Center" />
+                        <Button x:Name="CheckNowButton" Grid.Column="1" Content="Check now" Margin="12,0,0,0" Padding="16,6"
+                                VerticalAlignment="Center" Click="OnCheckNow" />
+                    </Grid>
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,6,0,0"
+                               Text="Asks GitHub which version is the latest, and tells you in the notification area when there's a newer one. Nothing about you or your files is sent." />
+                    <TextBlock x:Name="UpdateStatus" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
+
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,12,0,0"
+                               Text="Free and open source under the MIT licence. Apart from that update check, Fav Explorer never goes online, and nothing about your files leaves your PC." />
+                    <TextBlock Margin="0,10,0,0">
+                        <Hyperlink NavigateUri="https://github.com/tashreefshareef/fav-explorer" RequestNavigate="OnLink">GitHub page</Hyperlink>
+                        <Run Text="   ·   " Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        <Hyperlink NavigateUri="https://github.com/tashreefshareef/fav-explorer/releases" RequestNavigate="OnLink">All releases</Hyperlink>
+                        <Run Text="   ·   " Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        <Hyperlink NavigateUri="https://github.com/tashreefshareef/fav-explorer/issues/new" RequestNavigate="OnLink">Report a problem</Hyperlink>
+                    </TextBlock>
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0" Text="© 2026 MOHAMMED Tashreef" />
+                </StackPanel>
+            </Grid>
+        </Border>
 
         <!-- Shortcut -->
         <Border Style="{StaticResource Card}">
@@ -188,4 +229,5 @@
             <Button Content="Cancel" IsCancel="True" MinWidth="96" Padding="16,6" Margin="8,0,0,0" Click="OnCancel" />
         </StackPanel>
     </StackPanel>
+    </ScrollViewer>
 </Window>

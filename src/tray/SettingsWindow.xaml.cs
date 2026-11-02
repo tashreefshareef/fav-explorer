@@ -27,6 +27,14 @@ internal partial class SettingsWindow : Window
 
         Icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
             AppIcon.Load().Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+        AboutIcon.Source = Icon;
+
+        // Sized to its content, but never taller than the screen; the cards scroll instead.
+        MaxHeight = SystemParameters.WorkArea.Height;
+
+        // From the assembly rather than a constant here, so it can never disagree
+        // with the version the installer and the release were named after.
+        VersionText.Text = $"Version {UpdateCheck.Current}";
         System.Windows.Forms.Integration.ElementHost.EnableModelessKeyboardInterop(this);
 
         IsVisibleChanged += (_, _) => { if (IsVisible) LoadValues(); };
@@ -52,6 +60,8 @@ internal partial class SettingsWindow : Window
         CaptureError.Visibility = Visibility.Collapsed;
         ToastBox.IsChecked = _settings.ShowToast;
         StartupBox.IsChecked = Settings.IsRegisteredAtStartup();
+        UpdatesBox.IsChecked = _settings.CheckForUpdates;
+        UpdateStatus.Visibility = Visibility.Collapsed;
         RefreshDiagnostics();
         SaveButton.Focus();
     }
@@ -204,6 +214,7 @@ internal partial class SettingsWindow : Window
         _settings.Shortcut = _pending;
         _settings.ShowToast = ToastBox.IsChecked == true;
         _settings.RunAtStartup = StartupBox.IsChecked == true;
+        _settings.CheckForUpdates = UpdatesBox.IsChecked == true;
         _settings.Save();
 
         try { Settings.SetStartup(_settings.RunAtStartup); } catch { }
@@ -213,4 +224,58 @@ internal partial class SettingsWindow : Window
     }
 
     private void OnCancel(object sender, RoutedEventArgs e) => Hide();
+
+    // ------------------------------------------------------------- updates --
+
+    private async void OnCheckNow(object sender, RoutedEventArgs e)
+    {
+        CheckNowButton.IsEnabled = false;
+        ShowUpdateStatus("Checking…");
+        try
+        {
+            UpdateInfo? info = await UpdateCheck.FetchAsync();
+            if (info is null)
+            {
+                ShowUpdateStatus("Couldn't reach GitHub. Check your connection and try again.");
+                return;
+            }
+
+            _settings.LastUpdateCheck = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            _settings.Save();
+
+            if (!info.IsNewer)
+            {
+                ShowUpdateStatus($"You're up to date. {UpdateCheck.Current} is the latest version.");
+                return;
+            }
+
+            var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run("Download it"))
+            {
+                NavigateUri = new Uri(info.Url),
+            };
+            link.RequestNavigate += OnLink;
+            UpdateStatus.Inlines.Clear();
+            UpdateStatus.Inlines.Add(new System.Windows.Documents.Run($"Version {info.Latest} is available. ") { FontWeight = FontWeights.SemiBold });
+            UpdateStatus.Inlines.Add(link);
+            UpdateStatus.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            CheckNowButton.IsEnabled = true;
+        }
+    }
+
+    private void ShowUpdateStatus(string text)
+    {
+        UpdateStatus.Inlines.Clear();
+        UpdateStatus.Text = text;
+        UpdateStatus.Visibility = Visibility.Visible;
+    }
+
+    private void OnLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); }
+        catch { }
+        e.Handled = true;
+    }
 }

@@ -71,6 +71,10 @@ SmartScreen may say it "protected your PC" from an unknown publisher. Choose
 GitHub Actions, never on a developer machine; see the
 [code signing policy](#code-signing-policy) for the plan to sign them.
 
+To hear about new versions, turn on **Check for updates once a week** in Settings.
+It's off by default; when there's a newer release, the notification area tells you
+and links to it. Settings also shows the version you're running.
+
 ## How it works
 
 Two pieces, deliberately kept apart.
@@ -296,5 +300,6 @@ Team roles:
 - Committers and reviewers: [MOHAMMED Tashreef](https://github.com/tashreefshareef)
 - Approvers: [MOHAMMED Tashreef](https://github.com/tashreefshareef)
 
-Privacy: Fav Explorer makes no network connections and transfers no information to any
-other system. See [PRIVACY.md](PRIVACY.md).
+Privacy: Fav Explorer transfers no information about you or your files to any other
+system. Its only network request is an optional, off-by-default weekly check with
+GitHub for a newer release. See [PRIVACY.md](PRIVACY.md).
