@@ -4,7 +4,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:FavExplorer"
         Title="Fav Explorer — Settings"
-        Width="580" SizeToContent="Height" ResizeMode="NoResize"
+        Width="580" MinWidth="440" MinHeight="320" SizeToContent="Height"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>

@@ -29,8 +29,11 @@ internal partial class SettingsWindow : Window
             AppIcon.Load().Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
         AboutIcon.Source = Icon;
 
-        // Sized to its content, but never taller than the screen; the cards scroll instead.
-        MaxHeight = SystemParameters.WorkArea.Height;
+        // Opens sized to its content, but never taller or wider than the screen; the
+        // cards scroll instead. From there it can be resized like any window.
+        Rect work = SystemParameters.WorkArea;
+        Width = Math.Min(Width, work.Width * 0.9);
+        MaxHeight = work.Height;
 
         // From the assembly rather than a constant here, so it can never disagree
         // with the version the installer and the release were named after.

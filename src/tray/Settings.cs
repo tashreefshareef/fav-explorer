@@ -89,6 +89,10 @@ internal sealed class Settings
     [JsonPropertyName("favouritesGroup")]
     public string FavouritesGroup { get; set; } = nameof(FavGroup.Date);
 
+    // "showCmd,left,top,right,bottom" from GetWindowPlacement, in screen pixels.
+    [JsonPropertyName("favouritesPlacement")]
+    public string? FavouritesPlacement { get; set; }
+
     // Named Shortcut rather than Hotkey so the member never shadows the type inside
     // this class.
     [JsonIgnore]

@@ -124,6 +124,93 @@ internal partial class FavoritesWindow : Window
 
         ApplyView(save: false);
         ApplySort(save: false);
+
+        // The default size is a ceiling, not a promise: on a small laptop screen
+        // 1080x720 would run off the bottom.
+        Rect work = SystemParameters.WorkArea;
+        Width = Math.Min(Width, work.Width * 0.9);
+        Height = Math.Min(Height, work.Height * 0.9);
+        if (settings.FavouritesPlacement is not null) WindowStartupLocation = WindowStartupLocation.Manual;
+        SourceInitialized += (_, _) => RestorePlacement();
+        SizeChanged += (_, e) => { if (e.WidthChanged) FitCommandBar(); };
+        Loaded += (_, _) => FitCommandBar();
+    }
+
+    // ----------------------------------------------------------- placement --
+
+    private void RestorePlacement()
+    {
+        string[]? parts = _settings.FavouritesPlacement?.Split(',');
+        if (parts is not { Length: 5 } || !parts.All(p => int.TryParse(p, out _))) return;
+        int[] n = parts.Select(int.Parse).ToArray();
+
+        var wp = new Native.WINDOWPLACEMENT
+        {
+            length = System.Runtime.InteropServices.Marshal.SizeOf<Native.WINDOWPLACEMENT>(),
+            // Coming back minimized would just look like the window failed to open.
+            showCmd = n[0] == Native.SW_SHOWMINIMIZED ? Native.SW_SHOWNORMAL : n[0],
+            rcNormalPosition = new Native.RECT { Left = n[1], Top = n[2], Right = n[3], Bottom = n[4] },
+        };
+        Native.SetWindowPlacement(new WindowInteropHelper(this).Handle, ref wp);
+    }
+
+    private void SavePlacement()
+    {
+        var wp = new Native.WINDOWPLACEMENT { length = System.Runtime.InteropServices.Marshal.SizeOf<Native.WINDOWPLACEMENT>() };
+        if (!Native.GetWindowPlacement(new WindowInteropHelper(this).Handle, ref wp)) return;
+        Native.RECT r = wp.rcNormalPosition;
+        _settings.FavouritesPlacement = $"{wp.showCmd},{r.Left},{r.Top},{r.Right},{r.Bottom}";
+        _settings.Save();
+    }
+
+    // --------------------------------------------------------- command bar --
+
+    // 0: everything with labels. 1: icons only. 2: icons only, and the move, copy
+    // and share buttons live in the ⋯ menu instead.
+    private int _barLevel = -1;
+
+    private void FitCommandBar()
+    {
+        // Measured against the window, not the bar: a panel whose content is wider
+        // than its slot reports the content's width, so the bar itself never looks
+        // too narrow for its buttons.
+        if (Content is not FrameworkElement root || root.ActualWidth <= 0) return;
+
+        // Hiding a label doesn't change the bar's measured width until the next
+        // layout pass, so measuring after each step reads the old width. Instead the
+        // width of each level is worked out once, while everything is still showing.
+        if (_barWidths is null)
+        {
+            if (_barLevel != -1 || BarButtons.DesiredSize.Width <= 0) return;
+            static double W(FrameworkElement e) => e.DesiredSize.Width; // includes margins
+            double full = W(BarButtons);
+            double labels = new[] { OpenLabel, RevealLabel, MoveLabel, CopyToLabel, SortLabel, ViewLabel }.Sum(W);
+            double extras = new FrameworkElement[] { MoveButton, CopyToButton, ActionsDivider, CopyButton, ShareButton }.Sum(W)
+                            - W(MoveLabel) - W(CopyToLabel);
+            _barWidths = new[] { full, full - labels, full - labels - extras };
+        }
+
+        const double SearchRoom = 150 + 12; // the search box's MinWidth and margin
+        double room = root.ActualWidth - CommandBar.Margin.Left - CommandBar.Margin.Right - SearchRoom;
+        int level = 0;
+        while (level < 2 && _barWidths[level] > room) level++;
+        SetBarLevel(level);
+    }
+
+    private double[]? _barWidths;
+
+    private void SetBarLevel(int level)
+    {
+        if (level == _barLevel) return;
+        _barLevel = level;
+
+        Visibility labels = level == 0 ? Visibility.Visible : Visibility.Collapsed;
+        foreach (TextBlock label in new[] { OpenLabel, RevealLabel, MoveLabel, CopyToLabel, SortLabel, ViewLabel })
+            label.Visibility = labels;
+
+        Visibility extras = level < 2 ? Visibility.Visible : Visibility.Collapsed;
+        foreach (UIElement e in new UIElement[] { MoveButton, CopyToButton, ActionsDivider, CopyButton, ShareButton })
+            e.Visibility = extras;
     }
 
     public void Present()
@@ -135,8 +222,10 @@ internal partial class FavoritesWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        // Quitting is the tray icon's job. Closing this window just puts it away.
+        // Quitting is the tray icon's job. Closing this window just puts it away,
+        // remembering where it was for next time.
         e.Cancel = true;
+        SavePlacement();
         Hide();
     }
 
@@ -666,9 +755,32 @@ internal partial class FavoritesWindow : Window
         Choice("Details", _mode == FavView.Details, () => SetView(FavView.Details), "Ctrl+Shift+6"),
         Choice("Tiles", _mode == FavView.Tiles, () => SetView(FavView.Tiles), "Ctrl+Shift+8"));
 
-    private void OnMoreMenu(object sender, RoutedEventArgs e) => ShowMenu((Button)sender,
-        Choice("Refresh", false, RefreshAll, "F5"),
-        Choice("Drop missing files", false, DropMissing));
+    private void OnMoreMenu(object sender, RoutedEventArgs e)
+    {
+        var items = new List<object>();
+
+        // When the window is too narrow for them, these buttons are in here instead.
+        if (_barLevel >= 2)
+        {
+            bool any = Favs.SelectedItems.Count > 0;
+            foreach (MenuItem m in new[]
+            {
+                Choice("Move to…", false, () => TransferSelected(move: true)),
+                Choice("Copy to…", false, () => TransferSelected(move: false)),
+                Choice("Copy", false, () => CopySelected(pathsOnly: false), "Ctrl+C"),
+                Choice("Share", false, ShareSelected),
+            })
+            {
+                m.IsEnabled = any;
+                items.Add(m);
+            }
+            items.Add(new Separator());
+        }
+
+        items.Add(Choice("Refresh", false, RefreshAll, "F5"));
+        items.Add(Choice("Drop missing files", false, DropMissing));
+        ShowMenu((Button)sender, items.ToArray());
+    }
 
     private ContextMenu BuildItemMenu()
     {
