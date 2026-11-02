@@ -1,4 +1,4 @@
-# Fav Explorer
+# <img src="docs/images/icon.png" width="40" height="40" alt="" align="top"> Fav Explorer
 
 A heart you can stamp on any file from File Explorer with one keystroke, that stays
 visible on the thumbnail — so favourites are obvious while you scroll past a hundred
