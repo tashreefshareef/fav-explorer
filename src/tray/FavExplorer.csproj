@@ -4,6 +4,10 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- The favourites window is WPF for its Fluent theme; the tray and Settings
+         stay WinForms. ThemeMode is still flagged experimental (WPF0001). -->
+    <UseWPF>true</UseWPF>
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -31,5 +35,11 @@
     <PublishTrimmed>false</PublishTrimmed>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- UseWPF takes System.IO out of the implicit usings (it clashes with
+         System.Windows.Shapes.Path); the WinForms half relies on it. -->
+    <Using Include="System.IO" />
+  </ItemGroup>
 
 </Project>

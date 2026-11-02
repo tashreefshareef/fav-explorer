@@ -199,6 +199,48 @@ internal sealed class FavoriteStore : IDisposable
         Changed?.Invoke();
     }
 
+    /// <summary>
+    /// Catches the list up after files were moved or copied from the favourites
+    /// window. The watchers would see a source vanish, but not a file arriving in a
+    /// folder nobody is watching yet — which is where these usually go.
+    ///
+    /// Each side is checked against the disk rather than trusted, since the user may
+    /// have skipped a file, cancelled half way, or replaced something at the target.
+    /// </summary>
+    public void Transferred(IReadOnlyList<Transfer> transfers)
+    {
+        bool dirty = false;
+        foreach (Transfer t in transfers)
+        {
+            DateTimeOffset? when;
+            lock (_gate) when = _favs.TryGetValue(t.From, out DateTimeOffset w) ? w : null;
+
+            if (when is not null && !File.Exists(t.From) && !Directory.Exists(t.From))
+            {
+                lock (_gate) _favs.Remove(t.From);
+                dirty = true;
+            }
+
+            bool arrived = (File.Exists(t.To) || Directory.Exists(t.To)) && AdsTag.IsTagged(t.To);
+            if (arrived)
+            {
+                lock (_gate)
+                {
+                    if (!_favs.ContainsKey(t.To))
+                        _favs[t.To] = AdsTag.ReadTaggedAt(t.To) ?? when ?? DateTimeOffset.UtcNow;
+                }
+                dirty = true;
+            }
+        }
+
+        if (!dirty) return;
+        Log.Write($"transfer recorded for {transfers.Count} file(s)");
+        PublishIndex();
+        SaveList();
+        RefreshIcons(transfers.Select(t => t.To));
+        Changed?.Invoke();
+    }
+
     // -------------------------------------------------------------- rebuilding --
 
     /// <summary>

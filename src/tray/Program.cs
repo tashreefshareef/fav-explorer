@@ -8,6 +8,9 @@ internal static class Program
     // their own copy, tagging files with their own account's permissions.
     private const string InstanceMutex = @"Local\FavExplorer.SingleInstance";
 
+    // Set by a second launch to ask the running copy to show the favourites window.
+    public const string ShowEvent = @"Local\FavExplorer.ShowFavourites";
+
     [STAThread]
     private static void Main()
     {
@@ -15,10 +18,16 @@ internal static class Program
         if (!isFirst)
         {
             // A second copy would install a second keyboard hook and fight the first
-            // one over the index file.
-            MessageBox.Show(
-                "Fav Explorer is already running — look for the heart in the notification area.",
-                "Fav Explorer", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            // one over the index file. Launching it again — from the Start menu, say —
+            // almost always means "show me my favourites", so ask the running copy to.
+            if (EventWaitHandle.TryOpenExisting(ShowEvent, out EventWaitHandle? show))
+            {
+                using (show)
+                {
+                    Native.AllowSetForegroundWindow(Native.ASFW_ANY);
+                    show.Set();
+                }
+            }
             return;
         }
 
@@ -28,6 +37,17 @@ internal static class Program
 
         Application.ThreadException += (_, e) => Fatal(e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Fatal(e.ExceptionObject as Exception);
+
+        // The favourites window is WPF, for the Windows 11 look; the rest stays
+        // WinForms. This Application is never Run: it exists to carry the Fluent
+        // theme, following the system's light or dark setting, while the WinForms
+        // loop below pumps messages for both.
+        var wpf = new System.Windows.Application
+        {
+            ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
+            ThemeMode = System.Windows.ThemeMode.System,
+        };
+        wpf.DispatcherUnhandledException += (_, e) => { Fatal(e.Exception); e.Handled = true; };
 
         LegacyMigration.Run();
 

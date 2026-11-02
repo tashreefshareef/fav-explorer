@@ -13,12 +13,14 @@ internal sealed class TrayApp : ApplicationContext
     // The index has gone stale in the field once already, silently. A periodic check
     // costs one header read and bounds how long that can go unnoticed.
     private readonly System.Windows.Forms.Timer _indexWatchdog = new();
-    private FavoritesForm? _favorites;
-    private SettingsForm? _settingsForm;
+    private FavoritesWindow? _favorites;
+    private SettingsWindow? _settingsWindow;
 
-    private ToolStripMenuItem _miToggle = null!;
-    private ToolStripMenuItem _miPause = null!;
-    private ToolStripMenuItem _miStatus = null!;
+    private readonly TrayMenu _menu;
+
+    // A second launch sets this rather than starting a second copy; see Program.
+    private readonly EventWaitHandle _showRequest = new(false, EventResetMode.AutoReset, Program.ShowEvent);
+    private readonly RegisteredWaitHandle _showWait;
 
     public TrayApp()
     {
@@ -34,16 +36,26 @@ internal sealed class TrayApp : ApplicationContext
 
         _hook = new HotkeyHook(_marshal, _settings.Shortcut, OnHotkey);
 
+        _menu = new TrayMenu(
+            toggle: OnHotkey,
+            showAll: ShowFavorites,
+            rescan: RescanFolder,
+            pause: paused => SetPaused(paused),
+            settings: ShowSettings,
+            quit: Quit);
+
         _tray = new NotifyIcon
         {
             Icon = AppIcon.Load(),
             Text = "Fav Explorer",
             Visible = true,
-            ContextMenuStrip = BuildMenu(),
         };
         _tray.DoubleClick += (_, _) => ShowFavorites();
+        _tray.MouseUp += (_, e) => { if (e.Button == MouseButtons.Right) _menu.Show(); };
 
         _store.Changed += () => _marshal.BeginInvoke(UpdateMenuText);
+        _showWait = ThreadPool.RegisterWaitForSingleObject(_showRequest,
+            (_, _) => _marshal.BeginInvoke(ShowFavorites), null, Timeout.Infinite, executeOnlyOnce: false);
 
         if (!_hook.Install())
         {
@@ -77,50 +89,13 @@ internal sealed class TrayApp : ApplicationContext
 
     // ------------------------------------------------------------------- menu --
 
-    private ContextMenuStrip BuildMenu()
-    {
-        var menu = new ContextMenuStrip { ShowImageMargin = true };
-
-        _miStatus = new ToolStripMenuItem("Fav Explorer") { Enabled = false };
-
-        _miToggle = new ToolStripMenuItem("Favourite selected files", null, (_, _) => OnHotkey())
-        {
-            ShortcutKeyDisplayString = _settings.Shortcut.ToString(),
-        };
-
-        var miShow = new ToolStripMenuItem("Show all favourites…", null, (_, _) => ShowFavorites());
-        var miRescan = new ToolStripMenuItem("Rescan a folder…", null, (_, _) => RescanFolder());
-
-        _miPause = new ToolStripMenuItem("Pause the shortcut", null, (_, _) => TogglePause())
-        {
-            CheckOnClick = true,
-        };
-
-        var miSettings = new ToolStripMenuItem("Settings…", null, (_, _) => ShowSettings());
-        var miQuit = new ToolStripMenuItem("Quit Fav Explorer", null, (_, _) => Quit());
-
-        menu.Items.AddRange(new ToolStripItem[]
-        {
-            _miStatus,
-            new ToolStripSeparator(),
-            _miToggle,
-            miShow,
-            miRescan,
-            new ToolStripSeparator(),
-            _miPause,
-            miSettings,
-            new ToolStripSeparator(),
-            miQuit,
-        });
-        return menu;
-    }
-
     private void UpdateMenuText()
     {
         int n = _store.Count;
-        _miStatus.Text = n == 1 ? "1 favourite" : $"{n:N0} favourites";
-        _miToggle.ShortcutKeyDisplayString = _settings.Shortcut.ToString();
-        _tray.Text = $"Fav Explorer — {_miStatus.Text}";
+        string count = n == 1 ? "1 favourite" : $"{n:N0} favourites";
+        _menu.Status.Header = count;
+        _menu.Toggle.InputGestureText = _settings.Shortcut.ToString();
+        _tray.Text = _hook.Paused ? "Fav Explorer — shortcut paused" : $"Fav Explorer — {count}";
     }
 
     // ------------------------------------------------------------- the action --
@@ -182,38 +157,29 @@ internal sealed class TrayApp : ApplicationContext
         Toast.Show(msg);
     }
 
-    private void TogglePause()
+    private void SetPaused(bool paused)
     {
-        _hook.Paused = _miPause.Checked;
-        _tray.Text = _hook.Paused ? "Fav Explorer — shortcut paused" : $"Fav Explorer — {_store.Count:N0} favourites";
+        _hook.Paused = paused;
+        UpdateMenuText();
     }
 
     // ------------------------------------------------------------------ views --
 
     private void ShowFavorites()
     {
-        if (_favorites is null || _favorites.IsDisposed)
-            _favorites = new FavoritesForm(_store);
-
-        _favorites.Show();
-        _favorites.WindowState = FormWindowState.Normal;
-        _favorites.Activate();
+        // Never closed, only hidden, so one instance lasts the life of the app.
+        _favorites ??= new FavoritesWindow(_store, _settings);
+        _favorites.Present();
     }
 
     private void ShowSettings()
     {
-        if (_settingsForm is null || _settingsForm.IsDisposed)
+        _settingsWindow ??= new SettingsWindow(_settings, _store, applied =>
         {
-            _settingsForm = new SettingsForm(_settings, _store, applied =>
-            {
-                _hook.Rebind(applied.Shortcut);
-                UpdateMenuText();
-            });
-        }
-
-        _settingsForm.Show();
-        _settingsForm.WindowState = FormWindowState.Normal;
-        _settingsForm.Activate();
+            _hook.Rebind(applied.Shortcut);
+            UpdateMenuText();
+        });
+        _settingsWindow.Present();
     }
 
     private void RescanFolder()
@@ -269,6 +235,8 @@ internal sealed class TrayApp : ApplicationContext
     {
         if (disposing)
         {
+            _showWait.Unregister(null);
+            _showRequest.Dispose();
             _indexWatchdog.Dispose();
             _hook.Dispose();
             _tray.Dispose();

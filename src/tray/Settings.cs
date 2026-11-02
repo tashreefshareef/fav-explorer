@@ -63,6 +63,20 @@ internal sealed class Settings
     [JsonPropertyName("runAtStartup")]
     public bool RunAtStartup { get; set; }
 
+    // How the favourites window was last left. Strings rather than the enums so an
+    // older or newer build reading this file falls back instead of failing.
+    [JsonPropertyName("favouritesView")]
+    public string FavouritesView { get; set; } = nameof(FavView.Large);
+
+    [JsonPropertyName("favouritesSort")]
+    public string FavouritesSort { get; set; } = nameof(FavSort.Added);
+
+    [JsonPropertyName("favouritesSortDescending")]
+    public bool FavouritesSortDescending { get; set; } = true;
+
+    [JsonPropertyName("favouritesGroup")]
+    public string FavouritesGroup { get; set; } = nameof(FavGroup.Date);
+
     // Named Shortcut rather than Hotkey so the member never shadows the type inside
     // this class.
     [JsonIgnore]

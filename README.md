@@ -13,9 +13,39 @@ is waiting on its thumbnail when you go back to Explorer.
 
 ![Explorer showing a folder of photos, four of them with a small red heart in the corner of the thumbnail](docs/images/explorer-hearts.png)
 
-Double-click the tray icon for every favourite in one list, wherever it lives:
+## All your favourites in one place
 
-![The Fav Explorer favourites window listing four hearted photos with their folder and the time each was favourited](docs/images/favourites-list.png)
+Double-click the heart in the notification area, or start Fav Explorer again from the
+Start menu, and every file you've ever hearted is in one window, whichever folder or
+drive it's on.
+
+![The favourites window showing hearted photos as large thumbnails, grouped under Yesterday](docs/images/favourites-list.png)
+
+From there you can:
+
+- **View them the way Explorer does**: extra large, large or medium thumbnails, tiles,
+  or details. Ctrl+mouse wheel steps between them, and Explorer's own
+  <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd>/<kbd>6</kbd>/<kbd>8</kbd>
+  shortcuts work too.
+- **Sort** by date favourited, name, folder or size, and **group** them by when you
+  hearted them (Today, Yesterday, Last week…) or by folder. In Details, click a column
+  header to sort by it.
+- **Search** by file or folder name.
+- **Open** a photo, or **show it in its folder**.
+- **Move or copy** a selection to another folder or drive. Windows' own copy dialog
+  does the work, so you get its progress bar, its "replace or skip" prompts and
+  <kbd>Ctrl</kbd>+<kbd>Z</kbd> to undo, and the hearts go with the files.
+- **Share** through the Windows share panel, or **drag** photos straight into a browser
+  upload box, an email or a chat.
+- **Copy** them with <kbd>Ctrl</kbd>+<kbd>C</kbd> to paste into a folder, or copy their
+  paths with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>.
+- **Remove the heart** from anything you've changed your mind about.
+
+| Details, sorted by date favourited | Tiles, grouped by folder |
+|---|---|
+| ![The favourites window in Details view with name, folder, date favourited and size columns, sorted newest first](docs/images/favourites-details.png) | ![The favourites window in Tiles view, grouped by folder, each tile showing a thumbnail, the file name, its folder and when it was favourited](docs/images/favourites-tiles.png) |
+
+The window, Settings and the tray menu all follow your light or dark theme.
 
 ## Why I made this
 
@@ -207,8 +237,6 @@ Planned:
 
 - [Signed releases through SignPath](https://github.com/tashreefshareef/fav-explorer/issues/1), so SmartScreen stops warning
 - [Install with winget and Scoop](https://github.com/tashreefshareef/fav-explorer/issues/2)
-- [Search and filter in the favourites list](https://github.com/tashreefshareef/fav-explorer/issues/3)
-- [Copy or export all favourites to a folder](https://github.com/tashreefshareef/fav-explorer/issues/4)
 - [Keep hearts when files are copied to drives that can't store them](https://github.com/tashreefshareef/fav-explorer/issues/5)
 
 Under consideration:
