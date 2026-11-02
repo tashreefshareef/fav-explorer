@@ -11,6 +11,9 @@ internal sealed record ToggleResult(int Added, int Removed, int Skipped, string?
     public static readonly ToggleResult Nothing = new(0, 0, 0, null);
 }
 
+/// <summary>A file moved or copied from <see cref="From"/> to where it was meant to land.</summary>
+internal sealed record Transfer(string From, string To);
+
 internal sealed record IndexStatus(
     bool Healthy, int FoldersOnDisk, int FoldersExpected, int Favourites, ulong Generation, int Watching)
 {

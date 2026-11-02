@@ -2,8 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace FavExplorer;
 
-internal sealed record Transfer(string From, string To);
-
 /// <summary>
 /// Moving, copying and sharing files the way Explorer does it, by asking the shell
 /// to do it, so the user gets the dialogs they already know: progress, "replace or
