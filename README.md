@@ -65,11 +65,11 @@ Get `FavExplorerSetup-<version>.exe` from
 [Releases](https://github.com/tashreefshareef/fav-explorer/releases). Windows 10 1809
 or later, x64.
 
-Fav Explorer uses free code signing for open source projects provided by
-[SignPath.io](https://about.signpath.io), with a certificate by
-[SignPath Foundation](https://signpath.org). Releases up to and including 0.1.1 were
-published before signing was set up and are unsigned, so SmartScreen may warn about
-them. See the [code signing policy](#code-signing-policy).
+Releases aren't code-signed yet, so the first time you run the installer Windows
+SmartScreen may say it "protected your PC" from an unknown publisher. Choose
+**More info**, then **Run anyway**. Every installer is built from this repository by
+GitHub Actions, never on a developer machine; see the
+[code signing policy](#code-signing-policy) for the plan to sign them.
 
 ## How it works
 
@@ -282,12 +282,14 @@ The two hex values must match.
 
 ## Code signing policy
 
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
-[SignPath Foundation](https://signpath.org).
+Releases are not signed yet. The plan is to apply for free open source code signing
+from [SignPath.io](https://about.signpath.io), with a certificate by
+[SignPath Foundation](https://signpath.org), and sign every release from then on.
 
 Release binaries are built from this repository by the
-[`build` workflow](.github/workflows/build.yml) on GitHub Actions, and each release is
-approved for signing by hand. Nothing built on a developer machine is signed.
+[`build` workflow](.github/workflows/build.yml) on GitHub Actions. Once signing is in
+place, each release will be approved for signing by hand, and nothing built on a
+developer machine will be signed.
 
 Team roles:
 

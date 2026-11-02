@@ -80,4 +80,4 @@ jobs:
         run: |
           gh release create '${{ github.ref_name }}' (Get-ChildItem installer -Filter *.exe).FullName `
             --repo '${{ github.repository }}' --title 'Fav Explorer ${{ github.ref_name }}' --generate-notes `
-            --notes 'Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org). See the [code signing policy](https://github.com/tashreefshareef/fav-explorer#code-signing-policy).'
+            --notes 'This build is not code-signed yet, so Windows SmartScreen may warn about an unknown publisher the first time you run it; choose *More info*, then *Run anyway*. See the [code signing policy](https://github.com/tashreefshareef/fav-explorer#code-signing-policy).'
